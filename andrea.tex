@@ -23,9 +23,9 @@ We believe that the best tool to control a constrained and unstable dynamical sy
 MPC consists in solving a discrete-time finite-horizon optimal control problem (OCP) and then using only the first part of the resulting control trajectory.
 The process is repeated as fast as possible using the latest state estimation as initial state.
 MPC has been successfully used for the control of chemical processes.
-However, applications on legged robots are much more challenging:
+However, applications on legged robots are much more challenging for a number of reasons.
 \begin{itemize}
-\item \textbf{High dimensionality}: solving an optimization problem is computationally demanding, especially when the size of state and control are large (around 60 for humanoids)
+\item \textbf{High dimensionality}: solving an optimization problem is computationally demanding, especially when the size of state and control are large (around 60 for state of a humanoid)
 \item \textbf{Discontinuities}: the optimization process is slowed down by the discontinuities in the system dynamics, which need either to be approximated through smoothing~\citep{Todorov} or to be handled through hybrid models~\citep{Diehl2009a}.
 \item \textbf{Non convexity}: the optimal control problem is not convex, so it needs to be properly initialized to converge to a \emph{``good-enough''} local minimum.
 \end{itemize}
@@ -46,6 +46,8 @@ In 2015 we reported the first application of whole-body nonlinear MPC on a human
 To do that we used the efficient optimal-control framework MuJoCo~\citep{Todorov}, which can compute a 500ms trajectory for a 25-DoF robot in 50ms on a standard desktop computer.
 Fig.~\ref{fig:mujoco} shows one of the experiments: HRP-2 reaches for a target making contact with a table for support.
 
+Despite these promising preliminary results, we are still far from being able to fully exploit the capabilities of the robot with MPC.
+Before doing that, a number of issues need to be addressed, as we describe in the next sections.
 
 \subsection{Constraint Robustness}
 MPC inherently provides some level of robustness to uncertainties thanks to the frequent updates of the control trajectory based on the sensor feedback.
@@ -53,7 +55,7 @@ However, nothing prevents the solver to compute state-control trajectories that 
 When this happens, there is a high probability of violating some constraints, which often results in failure.
 To solve this issue we can account for uncertainties in the OCP formulation, which leads us to \emph{Robust MPC}~\citep{Bemporad1999}.
 While Robust MPC is an interesting and promising control paradigm, to the best of our knowledge it has never been used on legged robots.
-The main reason is probably the computation time: in general Robust MPC is more computationally demanding than standard MPC, whose computation time is already the bottleneck for application on legged robots.
+The main reason is probably the computation time: in general Robust MPC is more computationally demanding than standard MPC, whose computation time is already a bottleneck for application on legged robots.
 
 Despite this unpromising premise, the robotics community has recently started to study and apply robust control~\citep{Brasseur2015, Nguyen} and planning algorithms~\citep{Luo, Mordatch2015}.
 In particular, we recently proposed an optimization-based inverse-dynamics control framework that tries to guarantee constraint satisfaction despite errors in the joint-torque tracking~\citep{DelPrete2015b}.
@@ -68,7 +70,8 @@ We validated the proposed methods on a simulated HRP-2 humanoid robot performing
 We empirically showed that taking robustness into account greatly increases the chances of the robot not to fall, even in the presence of other uncertainties: velocity-estimation delays, inertial-parameter inaccuracies and limited actuator bandwidth. 
 Moreover, we verified that we could solve the proposed optimization problems in less than 1 ms on a standard CPU, so that these formulations are suitable for online control.
 
-Even if inverse-dynamics control is know to be more prone to myopic behaviors than MPC, these results encourage us to move forward towards Robust MPC.
+%Even if inverse-dynamics control is know to be more prone to myopic behaviors than MPC, these results encourage us to move forward towards Robust MPC.
+We have all reasons to believe that we could observe the same kind of improvements moving from MPC to Robust MPC.
 However, the step from robust inverse dynamics to Robust MPC is not trivial and several concerns need to be addressed.
 \begin{itemize}
 \item Will the (likely) increased computation time be outweighed by the improved robustness?
@@ -79,20 +82,20 @@ However, the step from robust inverse dynamics to Robust MPC is not trivial and 
 
 \subsection{Joint Torque Control}
 Another issue that we need to address for the real-robot implementation is the control of the actuators.
-Typically whole-body control and planning assume joint torques as the control inputs.
+Typically, control and planning algorithms assume joint torques as the control inputs.
 However, real actuators are far from being the perfect torque source that we would like them to be.
-This is due to the large friction in the transmission mechanisms (e.g. gear boxes, pistons).
-Currently, the best solution seems to use joint-torque feedback~\citep{Albu-Schaffer2007, Boaventura2012b}.
-Since in general this controller is not computationally demanding, it is better to decouple it from the whole-body MPC so as to run it at higher frequency (i.e. 1-3 kHz).
+This is mainly due to the large friction in the transmission mechanisms (e.g. gear boxes, pistons).
+Currently, the best solution seems to be the use of joint-torque feedback~\citep{Albu-Schaffer2007, Boaventura2012b}.
+Since in general the associated control action is not computationally demanding, it is beneficial to decouple it from the whole-body MPC so as to run it at higher frequency (i.e. 1-3 kHz).
 
 Despite being an essential component for the implementation of inverse-dynamics control, the problem of regulating the joint torques is still subject of ongoing research. The difference between the various works mainly lies in the type of actuator (rigid vs elastic, electric vs hydraulic) and the chosen actuator model (i.e. whether it includes the gear-box elasticity and/or the electric motor pole).
 
-Our approach was to neglect the elasticity of the harmonic drive and the electric pole of the motor transfer function, which results in an instantaneous relationship between motor input and joint torque. 
+Our approach on HRP-2 was to neglect the elasticity of the harmonic drive and the electric pole of the motor transfer function, which results in an instantaneous relationship between motor input and joint torque. 
 While the model has experimentally proved to achieve a reasonable accuracy, it remarkably simplifies the identification procedure: in particular, we do not need to excite the robot at high frequencies. 
 Most torque controllers rely on a direct measure of the joint torques. 
 Since our robot is not equipped with joint-torque sensors, we estimate the joint torques using the procedure proposed for iCub~[4]: we propagate the wrenches measured by the F/T sensors (located at ankles and wrists) along the kinematic chain using a model of the dynamics of the robot and an estimation of velocities and accelerations of the robot bodies, reconstructed using the joint encoders and the IMU. 
 This joint-torque estimation is used in the control to servo a feedback; it is also used offline to identify the relationship between the motor input and the associated joint torque. 
 The torque-control law is a simple superposition of a feedforward term (given by the identified motor model) and a feedback term (based on the estimated joint torque). 
-We validated the whole framework by implementing an inverse-dynamics controller on one leg of HRP-2, which has 6 joints. 
-In comparison to the closed-source position control of HRP-2, we get a better position tracking while using lower feedback gains (up to 25\%). 
-We also show the performances of our framework on a force-tracking task, which is easily integrated in the inverse-dynamics controller.
+We validated the whole framework by implementing an inverse-dynamics controller on the 6 joints of one leg of HRP-2. 
+In comparison to the closed-source position control of HRP-2, we got a better position tracking while using lower feedback gains (up to 25\%). 
+We also demonstrated the performances of our framework on a force-tracking task, which was easily integrated in the inverse-dynamics controller.
