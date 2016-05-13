@@ -26,13 +26,13 @@ MPC has been successfully used for the control of chemical processes.
 However, applications on legged robots are much more challenging:
 \begin{itemize}
 \item \textbf{High dimensionality}: solving an optimization problem is computationally demanding, especially when the size of state and control are large (around 60 for humanoids)
-\item \textbf{Discontinuities}: the optimization process is slowed down by the discontinuities in the system dynamics, which need either to be approximated through smoothing~\cite{Todorov} or to be handled through hybrid models~\cite{Diehl2009a}.
+\item \textbf{Discontinuities}: the optimization process is slowed down by the discontinuities in the system dynamics, which need either to be approximated through smoothing~\citep{Todorov} or to be handled through hybrid models~\citep{Diehl2009a}.
 \item \textbf{Non convexity}: the optimal control problem is not convex, so it needs to be properly initialized to converge to a \emph{``good-enough''} local minimum.
 \end{itemize}
 These challenges make it impossible to solve a new OCP at each sensor reading (typically every 1 ms) as we would like to. 
 In practice we may only be able to do it every 10-100 sensor readings---which for a full humanoid still requires an extremely efficient implementation. 
 In between two MPC computations we can still use the last-computed open-loop control trajectory.
-In 2015 we reported the first application of whole-body nonlinear MPC on a humanoid robot (i.e. HRP-2)~\cite{Koenemann2015}.
+In 2015 we reported the first application of whole-body nonlinear MPC on a humanoid robot (i.e. HRP-2)~\citep{Koenemann2015}.
 \begin{figure}[!tbp]
 \begin{center}
 	\includegraphics[width=0.4\textwidth]{figures/mujoco/ss0.png} \quad
@@ -43,7 +43,7 @@ In 2015 we reported the first application of whole-body nonlinear MPC on a human
 	\label{fig:mujoco}
 \end{center}
 \end{figure}
-To do that we used the efficient optimal-control framework MuJoCo~\cite{Todorov}, which can compute a 500ms trajectory for a 25-DoF robot in 50ms on a standard desktop computer.
+To do that we used the efficient optimal-control framework MuJoCo~\citep{Todorov}, which can compute a 500ms trajectory for a 25-DoF robot in 50ms on a standard desktop computer.
 Fig.~\ref{fig:mujoco} shows one of the experiments: HRP-2 reaches for a target making contact with a table for support.
 
 
@@ -51,13 +51,13 @@ Fig.~\ref{fig:mujoco} shows one of the experiments: HRP-2 reaches for a target m
 MPC inherently provides some level of robustness to uncertainties thanks to the frequent updates of the control trajectory based on the sensor feedback.
 However, nothing prevents the solver to compute state-control trajectories that are close to the margins of their feasible sets.
 When this happens, there is a high probability of violating some constraints, which often results in failure.
-To solve this issue we can account for uncertainties in the OCP formulation, which leads us to \emph{Robust MPC}~\cite{Bemporad1999}.
+To solve this issue we can account for uncertainties in the OCP formulation, which leads us to \emph{Robust MPC}~\citep{Bemporad1999}.
 While Robust MPC is an interesting and promising control paradigm, to the best of our knowledge it has never been used on legged robots.
 The main reason is probably the computation time: in general Robust MPC is more computationally demanding than standard MPC, whose computation time is already the bottleneck for application on legged robots.
 
-Despite this unpromising premise, the robotics community has recently started to study and apply robust control~\cite{Brasseur2015, Nguyen} and planning algorithms~\cite{Luo, Mordatch2015}.
-In particular, we recently proposed an optimization-based inverse-dynamics control framework that tries to guarantee constraint satisfaction despite errors in the joint-torque tracking~\cite{DelPrete2015b}.
-The accuracy of the torque tracking is known to be an important issue~\cite{Boaventura2012b, DelPrete2015a} (as we discuss at length in the next section), in particular for robots that do not have access to a direct measurement of the joint torques---such as most current humanoid robots: HRP-2, Hubo, Atlas, Valkyrie, Asimo, iCub. 
+Despite this unpromising premise, the robotics community has recently started to study and apply robust control~\citep{Brasseur2015, Nguyen} and planning algorithms~\citep{Luo, Mordatch2015}.
+In particular, we recently proposed an optimization-based inverse-dynamics control framework that tries to guarantee constraint satisfaction despite errors in the joint-torque tracking~\citep{DelPrete2015b}.
+The accuracy of the torque tracking is known to be an important issue~\citep{Boaventura2012b, DelPrete2015a} (as we discuss at length in the next section), in particular for robots that do not have access to a direct measurement of the joint torques---such as most current humanoid robots: HRP-2, Hubo, Atlas, Valkyrie, Asimo, iCub. 
 \begin{figure}[htbp]
    \centering
    \includegraphics[width=0.5\textwidth]{figures/30_robots_walking.png} % requires the graphicx package
@@ -82,7 +82,7 @@ Another issue that we need to address for the real-robot implementation is the c
 Typically whole-body control and planning assume joint torques as the control inputs.
 However, real actuators are far from being the perfect torque source that we would like them to be.
 This is due to the large friction in the transmission mechanisms (e.g. gear boxes, pistons).
-Currently, the best solution seems to use joint-torque feedback~\cite{Albu-Schaffer2007, Boaventura2012b}.
+Currently, the best solution seems to use joint-torque feedback~\citep{Albu-Schaffer2007, Boaventura2012b}.
 Since in general this controller is not computationally demanding, it is better to decouple it from the whole-body MPC so as to run it at higher frequency (i.e. 1-3 kHz).
 
 Despite being an essential component for the implementation of inverse-dynamics control, the problem of regulating the joint torques is still subject of ongoing research. The difference between the various works mainly lies in the type of actuator (rigid vs elastic, electric vs hydraulic) and the chosen actuator model (i.e. whether it includes the gear-box elasticity and/or the electric motor pole).

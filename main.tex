@@ -21,6 +21,7 @@
 %
 \usepackage{makeidx}         % allows index generation
 \usepackage{graphicx}        % standard LaTeX graphics tool
+\usepackage{natbib}
                              % when including figure files
 \usepackage{multicol}        % used for the two-column index
 \usepackage[bottom]{footmisc}% places footnotes at page bottom
@@ -67,7 +68,9 @@ Please use the 'starred' version of the new Springer \texttt{abstract} command f
 
 \input{conclusion}
 
+{
 \bibliographystyle{plainnat}
 \bibliography{references}
+}
 % \input{referenc}
 \end{document}
