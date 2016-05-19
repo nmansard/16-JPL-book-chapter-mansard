@@ -1,0 +1,76 @@
+\section{Planning acyclic contact sequences}
+When planning the motion of a multiped robot, efficient
+planners often rely on two simplifying assumptions:
+firstly, the locomotion pattern is cyclic, and thus deterministic (when walking, after the left
+foot the right foot always follows, and so on); secondly, the obstacles of the environment
+can always be avoided in such a way that the first assumption is verified.
+
+Discarding these assumptions is necessary for planning more complex motions.
+For instance, for tasks such as standing up, climbing stairs
+with a handrail, or getting out of a car, feasible solutions may require acyclic contact interactions between the robot and the environment.
+
+However, acyclic contact planning requires 
+handling a combinatorial, since any end effector can be used 
+at any time, with any part of the environment. Moreover, the root path of the robot
+must be computed at the same time as the contacts, adding a new layer of complexity~\citep{Bretl:2006:MPM:1124573.1124585, DBLP:conf/iser/EscandeKMG08}.
+
+In this section, we describe a planner able to automatically compute 
+a discrete sequence of contact configurations. These configurations verify a static equilibrium criterion,
+and are used as an input guide path for the second step of our framework (Section TODO).
+
+Contrary to previous contributions, the planner allows for \textit{interactive} performances.
+This means that the next contact transition can be computed before the current contact transition
+is executed on the robot. A pragmatic approach is chosen to break the combinatorial:
+the planning of a root path is decoupled from the planning of the contacts.
+First the planning of the root path is performed in a low dimensional space, which approximates 
+the space of static equilibrium contact configurations (Section~\ref{sec:steve_root}).
+Then a sequential algorithm is used to generate contacts along the computed path for the complete robot (Section~\ref{sec:steve_contact}).
+As discussed in Section TODO decomposition results in a planner that can fail to compute a solution even if it exists.
+However, experiments show that solutions can be effectively computed for various scenarios and robots, within seconds, where
+complete systems can require up to hours of computation.
+
+\subsection{Planning a root path}
+\label{sec:steve_root}
+In theory, decoupling the generation of a root path and contact configurations allows a strong 
+reduction on the complexity of the acyclic contact planning problem, but raises a new scientific question: 
+How to make sure that a root configuration allows to generate a contact configuration in static equilibrium?
+We call such a root configuration an \textit{equilibrium feasible} configuration.
+\cite{Bouyarmane2009} verify \textit{equilibrium feasibility} explicitly within their sampling based approach.
+Because sampling a contact configuration is impossible (the contact manifold has a zero measure), when a root configuration is generated, a generalized inverse kinematics solver 
+projects the robot onto a static equilibrium contact configuration. This is an expensive process, which prevents \textit{interactive} performances.
+
+To avoid this explicit verification, we propose an inexpensive \textit{reachability condition}, drawn from an informal observation:
+to create a contact with a surface, the root of the robot must be ``close, but not too close'': close enough
+to allow contact creation; not too close to avoid colliding with the environment.
+We then consider a dual representation to formulate this observation:
+contact surfaces must lie in the reachable workspace of the robot limbs (Fig. TODO), and a scaling of the robot trunk must be collision free (Fig. TODO).
+Given a parametrization, the condition defined by this representation is a trade-off between a necessary and a sufficient condition for the space of 
+\textit{contact feasibile} root configurations, that is the space of root configurations which can lead to a contact.
+
+To account for \textit{equilibrium feasibility} using the dual representation, we restrict our application domain.
+We consider \textit{cluttered} problems, that admit as a solution a sequence of contact configurations for which at least one contact occurs with a surface whose friction cone contains the direction of the gravity (this includes all of the scenarios we mentionned).
+For \textit{cluttered} problems, we assume \textit{equilibrium feasibility} is equivalent to \textit{contact feasibility}\footnote{We verify empirically this assumption in \cite{tonneauijrr16}}.
+
+Under these assumptions, verifying that a root configuration is \textit{equilibrium feasible} requires a simple collision test thanks to the \textit{reachability condition}.
+Therefore, to plan a root path for the robot, we can use any motion planner available from the litterature, such 
+as the Bi-RRT planner \citep{770022}. With such a planner, restricting the configuration space of the robot to the low dimensional \textit{equilibrium feasible} space with the \textit{reachability condition} is trivial. We call our implementation of such a constrained planner RB-RRT, for \textit{Reachability-Based} RRT.
+
+As an output of this phase, we obtain a continuous guide path of root configurations, assumed to be \textit{equilibrium feasible}.
+
+\subsection{Generating contact configurations}
+\label{sec:steve_contact}
+The objective of this second phase is to extend a guide path for the root into a discrete sequence of full body, static equilibrium
+contact configurations.
+
+To achieve this, the input path is discretized, resulting in a list of root configurations.
+The list is then traversed by the algorithm in an iterative fashion, starting from an input static equilibrium 
+initial configuration. 
+
+At each new step, an inverse kinematics solver tries to maintain all the contacts that existed in the previous step.
+Contact failure can occur because of collisions or joint limit violation, in which case the contacts are invalidated.
+Then, considering one contact free end-effector, a contact generator tries to generate a new contact that results in 
+a static equilibrium configuration. If this fails, a new attempt is made with the next end-effector available, and so on.
+Despite contact repositioning mechanisms to handle contact generation failure, the described algorithm can fail 
+even if a feasible contact sequence exists. Again, this results from the trade-off made between efficiency and completeness, and empirical
+results justify this approach. These statements are developed in in \cite{tonneauijrr16}.
+
