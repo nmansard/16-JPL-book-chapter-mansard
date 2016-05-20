@@ -25,7 +25,7 @@ the planning of a root path is decoupled from the planning of the contacts.
 First the planning of the root path is performed in a low dimensional space, which approximates 
 the space of static equilibrium contact configurations (Section~\ref{sec:steve_root}).
 Then a sequential algorithm is used to generate contacts along the computed path for the complete robot (Section~\ref{sec:steve_contact}).
-As discussed in Section TODO decomposition results in a planner that can fail to compute a solution even if it exists.
+As discussed in Section~\ref{sec:steve_discussion} decomposition results in a planner that can fail to compute a solution even if it exists.
 However, experiments show that solutions can be effectively computed for various scenarios and robots, within seconds, where
 complete systems can require up to hours of computation.
 
@@ -57,12 +57,11 @@ as the Bi-RRT planner \citep{770022}. With such a planner, restricting the confi
 
 As an output of this phase, we obtain a continuous guide path of root configurations, assumed to be \textit{equilibrium feasible}.
 
-\subsection{Generating contact configurations}
+\subsection{From a root path to a sequence of static equilibrium configurations}
 \label{sec:steve_contact}
-The objective of this second phase is to extend a guide path for the root into a discrete sequence of full body, static equilibrium
-contact configurations.
-
-To achieve this, the input path is discretized, resulting in a list of root configurations.
+%~ The objective of this second phase is to extend a guide path for the root into a discrete sequence of full body, static equilibrium
+%~ contact configurations.
+To compute a sequence of contact configurations, first the input path is discretized, resulting in a list of root configurations.
 The list is then traversed by the algorithm in an iterative fashion, starting from an input static equilibrium 
 initial configuration. 
 
@@ -70,7 +69,42 @@ At each new step, an inverse kinematics solver tries to maintain all the contact
 Contact failure can occur because of collisions or joint limit violation, in which case the contacts are invalidated.
 Then, considering one contact free end-effector, a contact generator tries to generate a new contact that results in 
 a static equilibrium configuration. If this fails, a new attempt is made with the next end-effector available, and so on.
+The algorithm is designed such that at most one contact can be created or removed 
+between two consecutive configurations.
 Despite contact repositioning mechanisms to handle contact generation failure, the described algorithm can fail 
 even if a feasible contact sequence exists. Again, this results from the trade-off made between efficiency and completeness, and empirical
-results justify this approach. These statements are developed in in \cite{tonneauijrr16}.
+results justify this approach. These statements are developed in \cite{tonneauijrr16}.
 
+\subsubsection{Contact candidates are sampled from a database}
+Whenever the algorithm requires the creation of a contact for a given limb, it resorts
+to a dedicated contact generator. This generator performs a spatial query on a database of precomputed configurations
+for the limb (expressed in the frame of the limb root), and selects those who are close to the obstacles of the environment, for the current
+root configuration. The selected candidates are sorted according to a user defined heuristic. Then, starting with the best
+candidate, an inverse kinematics solver projects the configuration onto contact with the closest obstacle surface. If the 
+obtained limb configuration is collision free, and allows to maintain the robot in static equilibrium, the configuration
+is selected as a new contact. Otherwise, the same approach is applied to the second best candidate, until one solution is found,
+or the contact generation fails (TODO Figure). The completeness of this approach is conditionned by the size of the limb configuration database.
+As discussed in \cite{Tonneau2014}, the optimal trade-off which was experimentally found for any robot model is usually 10000 configurations.
+
+\subsubsection{Static equilibrium test (TODO ???????)}
+
+\subsection{Discussion}
+The contact planner presented is an efficient way to rapidly generate contact plans for a legged robots when considering \textit{cluttered} problems.
+The obvious weakness of the planner is that it is not probabilistically complete. However, despite the approximations made at 
+each phase of the planning, we showed empirically that for concrete applications this weakness is not a limitating issue (\cite{tonneauijrr16}).
+Given the performances of the algorithm, replanning a path after a failed attempt remains several times faster than existing complete methods.
+There exists several minor improvements that could be brought to improve the algorithm beyond the initial idea, such as refining the geometrical
+representation of the trunk in the formulation of the \textit{reachability condition}. This would improve the approximation of the space of \textit{contact feasible} root configurations,
+and reduce the number of false positives and negatives that can lead to a failure of the algorithm. From a pragmatic point of view, we do not believe
+such aspects to be of major importance for the effectiveness of the approach.
+
+Two more important limitations are to be adressed for future work.
+\begin{itemize}
+\item First, the dynamic properties of the motion are not considered in the planning. There is no guarantee that a feasible
+motion exists between two consecutive configurations. Putting aside the actuation capabilities of the robot, one question to answer is 
+to determine whether there exists a trajectory of the robot center of mass that connects two configurations without slipping, and while 
+respecting the kinematic limitations of the robot. (TODO : parler de notre travail avec Andrea?)
+\item Then, imposing quasi static equilibrium at each contact transition is highly limitating in terms of the achievable motions. For instance,
+the planner will never be able to discover a motion requiring to jump, or more simply, compute a dynamic walking sequence, more similar to the human walk.
+\label{sec:steve_discussion}
+\end{itemize}
